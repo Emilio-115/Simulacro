@@ -1,4 +1,4 @@
-import { Restaurant, Product, RestaurantCategory, ProductCategory } from '../models/models.js'
+import { Restaurant, Product, RestaurantCategory, ProductCategory, sequelizeSession } from '../models/models.js'
 
 const index = async function (req, res) {
   try {
@@ -28,11 +28,31 @@ const indexOwner = async function (req, res) {
         include: [{
           model: RestaurantCategory,
           as: 'restaurantCategory'
-        }]
+        }],
+        order: [['promoted', 'DESC']]
       })
     res.json(restaurants)
   } catch (err) {
     res.status(500).send(err)
+  }
+}
+
+const promote = async function (req, res) {
+  try {
+    const newPromotion = await sequelizeSession.transaction(async (transaction) => {
+      const oldPromotion = await Restaurant.findOne({ where: { userId: req.user.id, promoted: true } }, transaction)
+      if (oldPromotion) {
+        oldPromotion.promoted = false
+        await oldPromotion.save({ transaction })
+      }
+      await Restaurant.update({ promoted: true }, { where: { id: req.params.restaurantId } }, transaction)
+      const newPromoted = await Restaurant.findOne({ where: { userId: req.user.id, promoted: true } }, transaction)
+      return newPromoted
+    })
+
+    res.json(newPromotion)
+  } catch (error) {
+    res.status(500).send(error)
   }
 }
 
@@ -100,6 +120,7 @@ const RestaurantController = {
   indexOwner,
   create,
   show,
+  promote,
   update,
   destroy
 }

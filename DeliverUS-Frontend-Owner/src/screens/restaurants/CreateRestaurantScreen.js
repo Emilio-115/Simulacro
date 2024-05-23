@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from 'react'
-import { Image, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native'
+import { Image, Platform, Pressable, ScrollView, StyleSheet, View, Switch } from 'react-native'
 import * as ExpoImagePicker from 'expo-image-picker'
 import { MaterialCommunityIcons } from '@expo/vector-icons'
 import * as yup from 'yup'
 import DropDownPicker from 'react-native-dropdown-picker'
-import { create, getRestaurantCategories } from '../../api/RestaurantEndpoints'
+import { create, getRestaurantCategories, getAll } from '../../api/RestaurantEndpoints'
 import InputItem from '../../components/InputItem'
 import TextRegular from '../../components/TextRegular'
 import * as GlobalStyles from '../../styles/GlobalStyles'
@@ -12,14 +12,33 @@ import restaurantLogo from '../../../assets/restaurantLogo.jpeg'
 import restaurantBackground from '../../../assets/restaurantBackground.jpeg'
 import { showMessage } from 'react-native-flash-message'
 import { ErrorMessage, Formik } from 'formik'
+
 import TextError from '../../components/TextError'
 
 export default function CreateRestaurantScreen ({ navigation }) {
   const [open, setOpen] = useState(false)
   const [restaurantCategories, setRestaurantCategories] = useState([])
   const [backendErrors, setBackendErrors] = useState()
+  const [existsPromoted, setExistsPromoted] = useState(false)
 
-  const initialRestaurantValues = { name: null, description: null, address: null, postalCode: null, url: null, shippingCosts: null, email: null, phone: null, restaurantCategoryId: null }
+  const [isEnabled, setIsEnabled] = useState(false)
+
+  const fetchRestaurants = async () => {
+    try {
+      const fetchedRestaurants = await getAll()
+      const exists = fetchedRestaurants.filter(r => r.promoted).length
+      if (exists !== 0) setExistsPromoted(true)
+    } catch (error) {
+      showMessage({
+        message: `There was an error while retrieving restaurants. ${error} `,
+        type: 'error',
+        style: GlobalStyles.flashStyle,
+        titleStyle: GlobalStyles.flashTextStyle
+      })
+    }
+  }
+
+  const initialRestaurantValues = { name: null, description: null, address: null, postalCode: null, url: null, shippingCosts: null, email: null, phone: null, restaurantCategoryId: null, promoted: false }
   const validationSchema = yup.object().shape({
     name: yup
       .string()
@@ -54,6 +73,7 @@ export default function CreateRestaurantScreen ({ navigation }) {
       .positive()
       .integer()
       .required('Restaurant category is required')
+
   })
 
   useEffect(() => {
@@ -77,6 +97,7 @@ export default function CreateRestaurantScreen ({ navigation }) {
       }
     }
     fetchRestaurantCategories()
+    fetchRestaurants()
   }, [])
 
   useEffect(() => {
@@ -208,6 +229,15 @@ export default function CreateRestaurantScreen ({ navigation }) {
                 backendErrors.map((error, index) => <TextError key={index}>{error.param}-{error.msg}</TextError>)
               }
 
+            <TextRegular>Is it promoted?</TextRegular>
+            <Switch
+                    trackColor={{ false: '#767577', true: '#81b0ff' }}
+                    thumbColor={values.promoted ? '#f5dd4b' : '#f4f3f4'}
+                    ios_backgroundColor="#3e3e3e"
+                    onValueChange={value => setFieldValue('promoted', value)}
+                    value={values.promoted}
+                  />
+              <ErrorMessage name={'promoted'} render={msg => <TextError>{msg}</TextError> }/>
               <Pressable
                 onPress={handleSubmit}
                 style={({ pressed }) => [

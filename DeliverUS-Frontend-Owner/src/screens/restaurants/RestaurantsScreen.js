@@ -2,7 +2,7 @@
 import React, { useContext, useEffect, useState } from 'react'
 import { StyleSheet, FlatList, Pressable, View } from 'react-native'
 
-import { getAll, remove } from '../../api/RestaurantEndpoints'
+import { getAll, remove, promote } from '../../api/RestaurantEndpoints'
 import ImageCard from '../../components/ImageCard'
 import TextSemiBold from '../../components/TextSemibold'
 import TextRegular from '../../components/TextRegular'
@@ -26,6 +26,15 @@ export default function RestaurantsScreen ({ navigation, route }) {
     }
   }, [loggedInUser, route])
 
+  const promoteRestaurant = async (id) => {
+    try {
+      await promote(id)
+      fetchRestaurants()
+    } catch (error) {
+
+    }
+  }
+
   const renderRestaurant = ({ item }) => {
     return (
       <ImageCard
@@ -35,11 +44,16 @@ export default function RestaurantsScreen ({ navigation, route }) {
           navigation.navigate('RestaurantDetailScreen', { id: item.id })
         }}
       >
+        <View justifyContent='space-between' flexDirection = 'column' >
         <TextRegular numberOfLines={2}>{item.description}</TextRegular>
         {item.averageServiceMinutes !== null &&
           <TextSemiBold>Avg. service time: <TextSemiBold textStyle={{ color: GlobalStyles.brandPrimary }}>{item.averageServiceMinutes} min.</TextSemiBold></TextSemiBold>
         }
+
+        <View style={styles.promoteShip}>
         <TextSemiBold>Shipping: <TextSemiBold textStyle={{ color: GlobalStyles.brandPrimary }}>{item.shippingCosts.toFixed(2)}€</TextSemiBold></TextSemiBold>
+        {item.promoted && <TextSemiBold style ={styles.promotion}>!En promocion¡</TextSemiBold>}
+        </View>
         <View style={styles.actionButtonsContainer}>
           <Pressable
             onPress={() => navigation.navigate('EditRestaurantScreen', { id: item.id })
@@ -77,6 +91,25 @@ export default function RestaurantsScreen ({ navigation, route }) {
             </TextRegular>
           </View>
         </Pressable>
+
+        <Pressable
+            onPress={() => promoteRestaurant(item.id) }
+            style={({ pressed }) => [
+              {
+                backgroundColor: pressed
+                  ? GlobalStyles.brandPrimaryTap
+                  : 'green'
+              },
+              styles.actionButton
+            ]}>
+          <View style={[{ flex: 1, flexDirection: 'row', justifyContent: 'center' }]}>
+            <MaterialCommunityIcons name='exclamation-thick' color={'white'} size={20}/>
+            <TextRegular textStyle={styles.text}>
+              Promote
+            </TextRegular>
+          </View>
+        </Pressable>
+        </View>
         </View>
       </ImageCard>
     )
@@ -175,8 +208,19 @@ export default function RestaurantsScreen ({ navigation, route }) {
 }
 
 const styles = StyleSheet.create({
+  promoteShip: {
+    marginRight: '9%',
+    flexDirection: 'row',
+    justifyContent: 'space-between'
+  },
   container: {
     flex: 1
+  },
+  promotion: {
+    borderRadius: 8,
+    borderWidth: 3,
+    borderColor: '#00ff00',
+    padding: 3
   },
   button: {
     borderRadius: 8,
@@ -188,6 +232,7 @@ const styles = StyleSheet.create({
     width: '80%'
   },
   actionButton: {
+    flex: 1,
     borderRadius: 8,
     height: 40,
     marginTop: 12,
@@ -200,7 +245,9 @@ const styles = StyleSheet.create({
   actionButtonsContainer: {
     flexDirection: 'row',
     bottom: 5,
-    position: 'absolute',
+
+    alignContent: 'center',
+    justifyContent: 'center',
     width: '90%'
   },
   text: {

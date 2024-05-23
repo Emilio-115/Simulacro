@@ -31,6 +31,10 @@ const loadModel = (sequelize, DataTypes) => {
       allowNull: false,
       type: DataTypes.STRING
     },
+    promoted: {
+      type: DataTypes.BOOLEAN,
+      defaultValue: false
+    },
     description: DataTypes.TEXT,
     address: {
       allowNull: false,
