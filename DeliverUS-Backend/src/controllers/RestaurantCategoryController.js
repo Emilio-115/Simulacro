@@ -1,4 +1,4 @@
-import { RestaurantCategory } from '../models/models.js'
+import { RestaurantCategory, sequelizeSession } from '../models/models.js'
 const index = async function (req, res) {
   try {
     const restaurantCategories = await RestaurantCategory.findAll()
@@ -7,7 +7,21 @@ const index = async function (req, res) {
     res.status(500).send(err)
   }
 }
+
+const create = async function (req, res) {
+  try {
+    const category = await sequelizeSession.transaction(async (transaction) => {
+      const createdCategory = await RestaurantCategory.create(req.body, { transaction })
+      return await RestaurantCategory.findByPk(createdCategory.id, { transaction })
+    })
+    res.json(category)
+  } catch (error) {
+    res.status(500).send(error)
+  }
+}
+
 const RestaurantCategoryController = {
-  index
+  index,
+  create
 }
 export default RestaurantCategoryController
